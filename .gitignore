@@ -1,0 +1,7 @@
+# dragonruby files
+*.exe
+font.ttf
+
+# dragonruby generated
+logs
+tmp
