@@ -26,11 +26,10 @@ def compute_fov(
           z = get_z.call(ox + dx, oy + dy)
           zslope = z.nil? ? nil : (z - oz) / tx
 
-          # TODO: 
           is_wall = (
             dx * dx + dy * dy >= sq_max_dist || 
             z == nil || 
-            zslope > 0.1 # ||
+            zslope > 0.1 
           )
           is_floor = !is_wall
 
