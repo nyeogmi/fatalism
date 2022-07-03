@@ -28,27 +28,39 @@ class Game
     # zbuf.add(0) { self.draw_player(1280/2, 720/2, 255, 0, 255) }
     get_z = lambda { |x, y| 
       # return nil if x == 0 && y == 0
-      (Math.sqrt(x*x + y*y) / 24 * 360 * 2).sin 
+      dist = Math.sqrt(x*x + y*y) / 18
+      (dist * 360 * 2).sin * (0.25 + 1.0 * dist)
     }
-    observer_z =  (args.state.tick_count).sin / 2 + 0.98
-    visible = compute_fov([0, 0, observer_z], 16, &get_z)
+    observer_x = (args.state.tick_count).cos * 12
+    observer_y = (args.state.tick_count).sin * 4
+    observer_z = get_z.call(observer_x, observer_y) # (args.state.tick_count).sin + 0.98
+    visible = compute_fov([observer_x, observer_y, observer_z + 0.5], 16, &get_z)
 
     visible.each do |x, y| 
       # TODO: Shorter spires further from start?
       z = get_z.call(x, y)
       return if z.nil? 
-      cx, cy = 1280/2, 720/2
+      cx, cy = 1280/2, 720/2 - 64
 
-      tx = cx - x * 14 - y * 14
-      ty = cy - x * 7 + y * 7 
-      tyz = ty + (z - observer_z) * 28
+      dx, dy, dz = x - observer_x, y - observer_y, z - observer_z
+
+      dist = Math.sqrt(dx * dx + dy * dy) 
+      alpha = (1.0 - (dist <= 14 ? 0.0 : ((dist - 14) / (16 - 14)) ** 1.5))
+
+      tx = - dx * 14 - dy * 14
+      ty = - dx * 7 + dy * 7 
+      tyz = ty + dz * 28
+
+      r, g, b = 255, 128 + z * 127, 0
+      g = 0 if g < 0
+      g = 255 if g > 255
 
       zbuf.add(-ty,
-        {primitive_marker: :sprite, x: tx - 16, y: tyz - 8, w: 32, h: 32, path: 'sprites/circ32.png', r: 255, g: 128 + z * 127, b: 0}
+        {primitive_marker: :sprite, x: cx + tx - 16, y: cy + tyz - 8, w: 32, h: 32, path: 'sprites/circ32.png', r: r, g: g, b: b, a: 255 * alpha}
       )
     end
 
-    zbuf.add(-720/2, {primitive_marker: :sprite, x: 1280/2 - 16, y: 720/2 - 16, w: 32, h: 32, path: 'sprites/circ32.png', r: 0, g: 128, b: 255})
+    zbuf.add(0, {primitive_marker: :sprite, x: 1280/2 - 32, y: 720/2 - 64 + 16, w: 64, h: 64, path: 'sprites/bat256.png', r: 0, g: 128, b: 255})
 
     zbuf.consume(@args)
   end

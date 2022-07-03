@@ -11,7 +11,7 @@ def compute_fov(
   visible[[ox, oy]] = true
 
   quadrant = lambda do |dx_tx, dx_ty, dy_tx, dy_ty|
-    scan = lambda do |tx, start_slope, end_slope, slopes_z| 
+    scan = lambda do |tx, start_slope, end_slope|
       while true 
         was_wall, was_floor = false, false
 
@@ -25,26 +25,21 @@ def compute_fov(
           
           z = get_z.call(ox + dx, oy + dy)
           zslope = z.nil? ? nil : (z - oz) / tx
-          ty_prior = start_slope + ((ty - min_ty) / (max_ty - min_ty)) * (end_slope - start_slope)
-          zslope_prior = slopes_z[ty_prior]
 
           # TODO: 
           is_wall = (
             dx * dx + dy * dy >= sq_max_dist || 
             z == nil || 
-            zslope > 0 ||
-            zslope < zslope_prior
+            zslope > 0.1 # ||
           )
           is_floor = !is_wall
-
-          slopes_z[ty] = zslope if !zslope.nil? && zslope > zslope_prior
 
           if is_wall || ty >= tx * start_slope && ty <= tx * end_slope then
             visible[[ox + dx, oy + dy]] = true 
           end
 
           start_slope = (2 * ty - 1) / (2 * tx) if was_wall && is_floor
-          scan.call(tx + 1, start_slope, (2 * ty - 1) / (2 * tx), slopes_z.dup) if was_floor && is_wall
+          scan.call(tx + 1, start_slope, (2 * ty - 1) / (2 * tx)) if was_floor && is_wall
 
           was_wall, was_floor=is_wall, is_floor
           ty += 1
@@ -55,7 +50,7 @@ def compute_fov(
       end
     end
 
-    scan.call(1, -1, 1, Hash::new { -Float::INFINITY })
+    scan.call(1, -1, 1)
   end
 
   quadrant.call(0, 1, -1, 0)
